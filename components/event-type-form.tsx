@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,8 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// 1. We use z.coerce.number() to automatically turn the string values from
-// the HTML Select components into actual numbers for the database.
+// 1. Updated Schema: We use z.coerce.number() to handle the string -> number conversion.
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
     slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must be lowercase, alphanumeric with hyphens"),
@@ -25,23 +24,20 @@ const formSchema = z.object({
 export function EventTypeForm({ initialData, mode }: { initialData?: any; mode: 'create' | 'edit' }) {
     const router = useRouter();
 
-    // 2. We remove the strict <z.infer<typeof formSchema>> generic here.
-    // This allows React Hook Form to accept the initial string values from the UI
-    // while the zodResolver handles the conversion to numbers for the final submission.
+    // 2. We remove the strict generic <z.infer<typeof formSchema>> to let React Hook Form 
+    // handle the conversion between UI strings and database numbers.
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: initialData?.title || "",
             slug: initialData?.slug || "",
             description: initialData?.description || "",
-            // Ensure these are passed as strings to the Select components
-            duration: initialData?.duration?.toString() || "30",
-            bufferTime: initialData?.bufferTime?.toString() || "0",
+            duration: initialData?.duration || 30,
+            bufferTime: initialData?.bufferTime || 0,
         },
     });
 
-    // 3. We explicitly type the 'values' here to maintain full
-    // TypeScript safety for our API call.
+    // 3. Manually type 'values' in onSubmit to keep the rest of your code safe.
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             const url = mode === 'create' ? '/api/event-types' : `/api/event-types/${initialData.id}`;
@@ -94,7 +90,10 @@ export function EventTypeForm({ initialData, mode }: { initialData?: any; mode: 
                     <FormField control={form.control} name="duration" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Duration (minutes)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select 
+                                onValueChange={field.onChange} 
+                                value={field.value?.toString()} // Ensure the Select component gets a string
+                            >
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {[15, 30, 45, 60].map((m) => <SelectItem key={m} value={m.toString()}>{m}m</SelectItem>)}
@@ -106,10 +105,13 @@ export function EventTypeForm({ initialData, mode }: { initialData?: any; mode: 
                     <FormField control={form.control} name="bufferTime" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Buffer Time (minutes)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select 
+                                onValueChange={field.onChange} 
+                                value={field.value?.toString()} // Ensure the Select component gets a string
+                            >
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select buffer" /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                    {[0, 5, 10, 15].map((m) => <SelectItem key={m} value={m.toString()}>{m}m</SelectItem>)}\r\n
+                                    {[0, 5, 10, 15].map((m) => <SelectItem key={m} value={m.toString()}>{m}m</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
