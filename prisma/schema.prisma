@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model EventType {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?
+  duration    Int       // in minutes
+  bufferTime  Int       @default(0) // minutes between meetings
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Availability {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 0-6 for Sunday-Saturday
+  startTime   String   // HH:mm format
+  endTime     String   // HH:mm format
+  timezone    String   @default("Asia/Kolkata")
+  createdAt   DateTime @default(now())
+}
+
+model DateOverride {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  isBlocked       Boolean  @default(true)
+  customStartTime String?  // HH:mm format
+  customEndTime   String?  // HH:mm format
+  createdAt       DateTime @default(now())
+}
+
+model Booking {
+  id          String    @id @default(cuid())
+  eventTypeId String
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  bookerName  String
+  bookerEmail String
+  startTime   DateTime
+  endTime     DateTime
+  status      String    @default("confirmed") // confirmed or cancelled
+  createdAt   DateTime  @default(now())
+
+  @@index([eventTypeId])
+  @@index([startTime])
+  @@index([status])
+}
